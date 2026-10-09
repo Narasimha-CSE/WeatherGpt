@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>WeatherGPT - AI Weather Intelligence</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='features.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='tabs.css') }}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+
+<body>
+
+<div class="background-glow glow-one"></div>
+<div class="background-glow glow-two"></div>
+
+<!-- =========================================================
+     NAVBAR
+========================================================= -->
+
+<nav class="navbar">
+
+    <div class="brand">
+
+        <div class="brand-icon">
+            🌤️
+        </div>
+
+        <div>
+
+            <h2>WeatherGPT</h2>
+
+            <span id="brandSubtitle">
+                AI Weather Intelligence
+            </span>
+
+        </div>
+
+    </div>
+
+    <div class="nav-right">
+
+        <div class="status">
+
+            <span class="status-dot"></span>
+
+            <span id="liveWeatherText">
+                Live Weather
+            </span>
+
+        </div>
+
+        {% if user %}
+        <div class="user-chip" id="userChip">
+            <span class="user-avatar">{{ user.name[:1]|upper }}</span>
+            <span class="user-name" title="{{ user.email }}">{{ user.name.split(' ')[0] }}</span>
+            <button type="button" class="logout-btn" id="logoutBtn" aria-label="Log out" title="Log out">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+            </button>
+        </div>
+        {% endif %}
+
+    </div>
+
+</nav>
+
+
+<main class="container">
+
+    <!-- =====================================================
+         LANGUAGE SELECTOR BAR
+         Positioned between AI-POWERED WEATHER tag and 
+         Live Weather Animation Scene
+    ====================================================== -->
+
+    <div class="top-language-bar">
+
+        <span class="top-language-tag" id="heroTag">
+            AI-POWERED WEATHER
+        </span>
+
+        <div class="top-language-selector-wrap">
+
+            <label for="languageSelect" class="lang-label">🌐 Language:</label>
+
+            <select id="languageSelect">
+
+                <option value="auto">
+                    Auto Detect
+                </option>
+
+                <option value="en">
+                    English
+                </option>
+
+                <option value="te">
+                    తెలుగు
+                </option>
+
+                <option value="hi">
+                    हिन्दी
+                </option>
+
+            </select>
+
+            <span id="voiceStatus">
+                Voice ready
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- Shows the selected city on the Graphs / Tools / Advisory pages -->
+    <div class="tab-context" id="tabContext" hidden>
+        <span>📍 <b id="tabCity">No city selected yet</b></span>
+        <button type="button" id="tabChangeCity">🔍 Change city</button>
+    </div>
+
+    <!-- =====================================================
+         3D WEATHER SCENE
+    ====================================================== -->
+
+    <section data-page="home" id="weatherScene"
+             class="weather-scene scene-default">
+
+        <div class="scene-sky"></div>
+
+        <div class="scene-light"></div>
+
+
+        <!-- SUN -->
+
+        <div class="sun-3d">
+
+            <div class="sun-core"></div>
+
+            <div class="sun-ring ring-one"></div>
+
+            <div class="sun-ring ring-two"></div>
+
+        </div>
+
+
+        <!-- CLOUD 1 -->
+
+        <div class="cloud cloud-one">
+
+            <span class="cloud-part cloud-a"></span>
+            <span class="cloud-part cloud-b"></span>
+            <span class="cloud-part cloud-c"></span>
+            <span class="cloud-part cloud-d"></span>
+
+        </div>
+
+
+        <!-- CLOUD 2 -->
+
+        <div class="cloud cloud-two">
+
+            <span class="cloud-part cloud-a"></span>
+            <span class="cloud-part cloud-b"></span>
+            <span class="cloud-part cloud-c"></span>
+            <span class="cloud-part cloud-d"></span>
+
+        </div>
+
+
+        <!-- CLOUD 3 -->
+
+        <div class="cloud cloud-three">
+
+            <span class="cloud-part cloud-a"></span>
+            <span class="cloud-part cloud-b"></span>
+            <span class="cloud-part cloud-c"></span>
+            <span class="cloud-part cloud-d"></span>
+
+        </div>
+
+
+        <!-- WEATHER EFFECTS -->
+
+        <div id="rainLayer"
+             class="rain-layer"></div>
+
+        <div id="snowLayer"
+             class="snow-layer"></div>
+
+        <div id="fogLayer"
+             class="fog-layer"></div>
+
+        <div id="heatLayer"
+             class="heat-layer"></div>
+
+        <div id="lightning"
+             class="lightning"></div>
+
+
+        <div class="scene-ground"></div>
+
+
+        <!-- SCENE STATUS -->
+
+        <div class="scene-status">
+
+            <span class="scene-status-dot"></span>
+
+            <span id="sceneStatus">
+                Live Weather Animation
+            </span>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         HERO
+    ====================================================== -->
+
+    <section class="hero" data-page="home">
+
+
+        <!-- HERO CONTENT -->
+
+        <div>
+
+            <h1 id="heroTitle">
+
+                Understand the
+
+                <span>
+                    Weather Around You.
+                </span>
+
+            </h1>
+
+
+            <p id="heroDescription">
+
+                Get live weather information, intelligent AI insights,
+                travel advice, health recommendations and conversational
+                weather assistance.
+
+            </p>
+
+        </div>
+
+
+        <!-- =================================================
+             LOCATION SEARCH
+        ================================================= -->
+
+        <div class="search-column">
+
+
+            <!-- SEARCH BAR -->
+
+            <div class="search-area">
+
+                <input
+                    type="text"
+                    id="cityInput"
+                    placeholder="Enter city name..."
+                    autocomplete="off"
+                >
+
+
+                <button
+                    id="searchBtn"
+                    type="button">
+
+                    Search
+
+                </button>
+
+            </div>
+
+
+            <!-- LOCATION SUGGESTIONS -->
+
+            <div id="locationResults"
+                 class="location-results">
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         ERROR
+    ====================================================== -->
+
+    <div id="error"></div>
+
+
+    <!-- =====================================================
+         MAIN GRID
+    ====================================================== -->
+
+    <section class="main-grid" data-page="home">
+
+
+        <!-- =================================================
+             WEATHER PANEL
+        ================================================== -->
+
+        <div class="weather-panel">
+
+
+            <!-- PANEL HEADER -->
+
+            <div class="panel-header">
+
+                <div>
+
+                    <span id="currentWeatherLabel"
+                          class="small-label">
+
+                        CURRENT WEATHER
+
+                    </span>
+
+
+                    <h2 id="cityName">
+
+                        Search a city
+
+                    </h2>
+
+                </div>
+
+
+                <div id="weatherIcon"
+                     class="weather-icon">
+
+                    🌤️
+
+                </div>
+
+            </div>
+
+
+            <!-- TEMPERATURE -->
+
+            <div class="temperature-area">
+
+                <div id="temperature"
+                     class="temperature">
+
+                    --
+
+                </div>
+
+
+                <div class="degree">
+
+                    °C
+
+                </div>
+
+            </div>
+
+
+            <!-- WEATHER DESCRIPTION -->
+
+            <div id="description"
+                 class="description">
+
+                Search for a city to view weather.
+
+            </div>
+
+
+            <!-- WEATHER METRICS -->
+
+            <div class="weather-metrics">
+
+
+                <!-- FEELS LIKE -->
+
+                <div class="metric">
+
+                    <span>
+                        🌡️
+                    </span>
+
+                    <div>
+
+                        <small id="feelsLikeLabel">
+
+                            FEELS LIKE
+
+                        </small>
+
+                        <strong id="feelsLike">
+
+                            -- °C
+
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <!-- HUMIDITY -->
+
+                <div class="metric">
+
+                    <span>
+                        💧
+                    </span>
+
+                    <div>
+
+                        <small id="humidityLabel">
+
+                            HUMIDITY
+
+                        </small>
+
+                        <strong id="humidity">
+
+                            -- %
+
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <!-- WIND -->
+
+                <div class="metric">
+
+                    <span>
+                        💨
+                    </span>
+
+                    <div>
+
+                        <small id="windLabel">
+
+                            WIND
+
+                        </small>
+
+                        <strong id="wind">
+
+                            -- m/s
+
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <!-- PRESSURE -->
+
+                <div class="metric">
+
+                    <span>
+                        🧭
+                    </span>
+
+                    <div>
+
+                        <small id="pressureLabel">
+
+                            PRESSURE
+
+                        </small>
+
+                        <strong id="pressure">
+
+                            -- hPa
+
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <!-- VISIBILITY -->
+
+                <div class="metric">
+
+                    <span>
+                        👁️
+                    </span>
+
+                    <div>
+
+                        <small id="visibilityLabel">
+
+                            VISIBILITY
+
+                        </small>
+
+                        <strong id="visibility">
+
+                            -- km
+
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <!-- CLOUDINESS -->
+
+                <div class="metric">
+
+                    <span>
+                        ☁️
+                    </span>
+
+                    <div>
+
+                        <small id="cloudinessLabel">
+
+                            CLOUDINESS
+
+                        </small>
+
+                        <strong id="clouds">
+
+                            -- %
+
+                        </strong>
+
+                    </div>
+
+                </div>
+
+                <!-- UV INDEX -->
+
+                <div class="metric">
+                    <span>☀️</span>
+                    <div>
+                        <small id="uvLabel">UV INDEX</small>
+                        <strong id="uvIndex">--</strong>
+                    </div>
+                </div>
+
+                <!-- WIND DIRECTION -->
+
+                <div class="metric">
+                    <span>🧭</span>
+                    <div>
+                        <small id="windDirLabel">WIND DIRECTION</small>
+                        <strong id="windDir">--</strong>
+                    </div>
+                </div>
+
+            </div>
+
+
+            <!-- WEATHER OVERVIEW -->
+
+            <div class="overview">
+
+                <div id="overviewTitle"
+                     class="overview-title">
+
+                    Weather Overview
+
+                </div>
+
+
+                <div id="overviewText"
+                     class="overview-text">
+
+                    Search for a city to get live weather information.
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             AI PANEL
+        ================================================== -->
+
+        <div class="ai-panel">
+
+
+            <!-- AI HEADER -->
+
+            <div class="ai-header">
+
+
+                <div class="ai-title">
+
+                    <div class="ai-avatar">
+
+                        🤖
+
+                    </div>
+
+
+                    <div>
+
+                        <h2>
+
+                            WeatherGPT AI
+
+                        </h2>
+
+
+                        <span>
+
+                            Powered by Groq
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ONLINE STATUS -->
+
+                <div class="ai-right">
+                    <button type="button" class="speak-toggle on" id="speakToggle" aria-pressed="true" title="Speak answers aloud">🔊</button>
+                    <div class="online">
+
+                        <span></span>
+
+                        <span id="onlineText">
+
+                            Online
+
+                        </span>
+
+                    </div>
+                </div>
+
+            </div>
+
+
+            <!-- CHAT CONTAINER -->
+
+            <div id="chatContainer"
+                 class="chat-container">
+
+
+                <!-- INITIAL AI MESSAGE -->
+
+                <div class="ai-message">
+
+
+                    <div class="message-avatar">
+
+                        🤖
+
+                    </div>
+
+
+                    <div class="message-content">
+
+
+                        <div class="message-name">
+
+                            WeatherGPT
+
+                        </div>
+
+
+                        <p id="welcomeMessage">
+
+                            Hello! I'm WeatherGPT.
+                            Search for a city and ask me anything
+                            about its weather.
+
+                        </p>
+
+
+                        <div class="message-time">
+
+                            Now
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- QUICK QUESTIONS -->
+
+            <div class="quick-questions">
+
+
+                <button
+                    type="button"
+                    data-question="What should I wear today?">
+
+                    👕
+                    <span>
+
+                        What should I wear?
+
+                    </span>
+
+                </button>
+
+
+                <button
+                    type="button"
+                    data-question="Is it good for travel today?">
+
+                    🚗
+                    <span>
+
+                        Good for travel?
+
+                    </span>
+
+                </button>
+
+
+                <button
+                    type="button"
+                    data-question="Should I carry an umbrella?">
+
+                    ☔
+                    <span>
+
+                        Need an umbrella?
+
+                    </span>
+
+                </button>
+
+
+                <button
+                    type="button"
+                    data-question="How is the weather today?">
+
+                    🌤️
+                    <span>
+
+                        Today's weather
+
+                    </span>
+
+                </button>
+
+            </div>
+
+
+            <!-- TYPING INDICATOR -->
+
+            <div id="typingIndicator"
+                 class="typing-indicator hidden">
+
+
+                <div class="typing-avatar">
+
+                    🤖
+
+                </div>
+
+
+                <div>
+
+                    <span id="thinkingText">
+
+                        WeatherGPT is thinking...
+
+                    </span>
+
+
+                    <div class="typing-dots">
+
+                        <span></span>
+                        <span></span>
+                        <span></span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- CHAT INPUT WITH MICROPHONE -->
+
+            <div class="chat-input-area">
+
+
+                <textarea
+                    id="questionInput"
+                    rows="1"
+                    placeholder="Ask WeatherGPT or click mic to speak..."
+                ></textarea>
+
+
+                <!-- VOICE MICROPHONE BUTTON -->
+                <button
+                    id="micBtn"
+                    class="mic-button"
+                    type="button"
+                    title="Click to speak, click again to send">
+
+                    🎙️
+
+                </button>
+
+
+                <button
+                    id="sendBtn"
+                    class="send-button"
+                    type="button"
+                    title="Send message">
+
+                    ➤
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         SMART INSIGHTS
+    ====================================================== -->
+
+    <section class="insights-section" data-page="advisory">
+
+
+        <!-- SECTION TITLE -->
+
+        <div class="section-title">
+
+
+            <div>
+
+                <span id="analysisLabel"
+                      class="small-label">
+
+                    AI WEATHER ANALYSIS
+
+                </span>
+
+
+                <h2 id="smartInsightsTitle">
+
+                    Smart Insights
+
+                </h2>
+
+            </div>
+
+
+            <span class="ai-badge">
+
+                GROQ AI
+
+            </span>
+
+        </div>
+
+
+        <!-- INSIGHT CARDS -->
+
+        <div class="insight-grid">
+
+
+            <!-- STATUS -->
+
+            <div class="insight-card">
+
+
+                <div class="insight-icon">
+
+                    🌤️
+
+                </div>
+
+
+                <h3 id="statusTitle">
+
+                    Status
+
+                </h3>
+
+
+                <ul id="insightStatus">
+
+                    <li>
+
+                        Search a city to generate AI weather insights.
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+
+            <!-- ALERT -->
+
+            <div class="insight-card">
+
+
+                <div class="insight-icon">
+
+                    ⚠️
+
+                </div>
+
+
+                <h3 id="alertTitle">
+
+                    Alert
+
+                </h3>
+
+
+                <ul id="insightAlert">
+
+                    <li>
+
+                        Weather alerts will appear here.
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+
+            <!-- CLOTHING -->
+
+            <div class="insight-card">
+
+
+                <div class="insight-icon">
+
+                    👕
+
+                </div>
+
+
+                <h3 id="clothingTitle">
+
+                    Clothing
+
+                </h3>
+
+
+                <ul id="insightClothing">
+
+                    <li>
+
+                        AI clothing recommendations will appear here.
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+
+            <!-- HEALTH -->
+
+            <div class="insight-card">
+
+
+                <div class="insight-icon">
+
+                    💚
+
+                </div>
+
+
+                <h3 id="healthTitle">
+
+                    Health
+
+                </h3>
+
+
+                <ul id="insightHealth">
+
+                    <li>
+
+                        Health and hydration advice will appear here.
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+
+            <!-- TRAVEL -->
+
+            <div class="insight-card">
+
+
+                <div class="insight-icon">
+
+                    🚗
+
+                </div>
+
+
+                <h3 id="travelTitle">
+
+                    Travel
+
+                </h3>
+
+
+                <ul id="insightTravel">
+
+                    <li>
+
+                        Travel recommendations will appear here.
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- =====================================================
+         FEATURE NAV
+    ===================================================== -->
+    <nav class="feature-nav" id="featureNav" aria-label="Sections">
+        <a href="#analyticsSection">📈 Analytics</a>
+        <a href="#forecastSection" data-i18n="nav_forecast">📅 Forecast</a>
+        <a href="#alertsSection" data-i18n="nav_alerts">🚨 Alerts</a>
+        <a href="#recsSection" data-i18n="nav_recs">👕 Advice</a>
+        <a href="#travelSection" data-i18n="nav_travel">✈️ Travel</a>
+        <a href="#farmSection" data-i18n="nav_farm">🌾 Farmer</a>
+        <a href="#climateSection" data-i18n="nav_climate">📊 Climate</a>
+        <a href="#mapSection" data-i18n="nav_map">🗺️ Map</a>
+        <a href="#toolkitSection">🧰 Toolkit</a>
+    </nav>
+
+    <!-- WEATHER ANALYTICS (previous / next days + climate graph, moved here from the weather panel) -->
+    <section class="fx-section" id="analyticsSection" data-page="graphs">
+        <div class="fx-head">
+            <div><span class="small-label">WEATHER ANALYTICS</span><h2>Previous days, next days and trend graph</h2></div>
+        </div>
+        <div id="analyticsHost"></div>
+    </section>
+
+    <!-- FORECAST INTELLIGENCE -->
+    <section class="fx-section" id="forecastSection" data-page="graphs">
+        <div class="fx-head">
+            <div><span class="small-label" data-i18n="forecast_label">FORECAST INTELLIGENCE</span><h2 data-i18n="forecast_title">Hourly and multi-day forecast</h2></div>
+            <div class="fx-badge fx-place" id="fxPlace" hidden></div>
+        </div>
+        <div class="fx-empty" data-i18n="empty_search">Search for a city to see this section.</div>
+        <div class="fx-body" hidden>
+            <div class="ai-explain">
+                <div class="ai-explain-head"><span>🤖 <b data-i18n="ai_explains">AI explains the forecast</b></span><button type="button" class="icon-btn" id="explainSpeak" aria-label="Read aloud">🔊</button></div>
+                <p id="explainText"></p>
+            </div>
+            <div class="hourly" id="hourlyStrip"></div>
+            <div class="chart-card"><div class="chart-wrap"><canvas id="forecastChart"></canvas></div></div>
+            <div class="daily" id="dailyGrid"></div>
+        </div>
+    </section>
+
+    <!-- SMART ALERTS -->
+    <section class="fx-section" id="alertsSection" data-page="advisory">
+        <div class="fx-head">
+            <div><span class="small-label" data-i18n="alerts_label">SMART WEATHER ALERTS</span><h2 data-i18n="alerts_title">What to watch in the next 24 hours</h2></div>
+        </div>
+        <div class="fx-empty" data-i18n="empty_search">Search for a city to see this section.</div>
+        <div class="fx-body" hidden><div class="alert-list" id="alertsList"></div></div>
+    </section>
+
+    <!-- PERSONAL RECOMMENDATIONS -->
+    <section class="fx-section" id="recsSection" data-page="advisory">
+        <div class="fx-head">
+            <div><span class="small-label" data-i18n="recs_label">SMART RECOMMENDATIONS</span><h2 data-i18n="recs_title">Weather turned into practical advice</h2></div>
+        </div>
+        <div class="fx-empty" data-i18n="empty_search">Search for a city to see this section.</div>
+        <div class="fx-body" hidden><div class="recs-grid" id="recsGrid"></div></div>
+    </section>
+
+    <!-- TRAVEL INTELLIGENCE -->
+    <section class="fx-section" id="travelSection" data-page="tools">
+        <div class="fx-head">
+            <div><span class="small-label" data-i18n="travel_label">TRAVEL INTELLIGENCE</span><h2 data-i18n="travel_title">Is it a good time to travel?</h2></div>
+        </div>
+        <div class="fx-empty" data-i18n="empty_search">Search for a city to see this section.</div>
+        <div class="fx-body" hidden>
+            <div class="travel-wrap">
+                <div class="travel-ring" id="travelRing" style="--p:0"><b id="travelScore">0</b><small>/100</small></div>
+                <div class="travel-main">
+                    <h3 id="travelVerdict">--</h3>
+                    <div class="travel-chips" id="travelChips"></div>
+                </div>
+                <div class="travel-factors" id="travelFactors"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FARMER ADVISORY -->
+    <section class="fx-section farm" id="farmSection" data-page="advisory">
+        <div class="fx-head">
+            <div><span class="small-label" data-i18n="farm_label">AGRICULTURE ADVISORY</span><h2 data-i18n="farm_title">Farmer weather advisory</h2></div>
+            <label class="crop-pick"><span data-i18n="crop_label">Crop</span>
+                <select id="cropSelect"></select>
+            </label>
+        </div>
+        <div class="fx-empty" data-i18n="empty_search">Search for a city to see this section.</div>
+        <div class="fx-body" hidden>
+            <div class="farm-grid" id="farmGrid"></div>
+            <div class="farm-ai">
+                <button type="button" class="fx-btn" id="farmAIBtn" data-i18n="farm_ai_btn">🤖 Get AI advice for this crop</button>
+                <div class="farm-ai-out" id="farmAIOut" hidden></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CLIMATE INTELLIGENCE -->
+    <section class="fx-section" id="climateSection" data-page="graphs">
+        <div class="fx-head">
+            <div><span class="small-label" data-i18n="climate_label">CLIMATE INTELLIGENCE</span><h2 data-i18n="climate_title">Historical climate, trends and anomalies</h2></div>
+            <label class="crop-pick"><span data-i18n="years_label">Period</span>
+                <select id="climateYears"><option value="6">6 yr</option><option value="10" selected>10 yr</option><option value="15">15 yr</option><option value="20">20 yr</option></select>
+            </label>
+        </div>
+        <div class="fx-empty" data-i18n="empty_search">Search for a city to see this section.</div>
+        <div class="fx-body" hidden>
+            <div class="tab-row" id="climateTabs">
+                <button type="button" class="on" data-view="temp" data-i18n="tab_temp">🌡️ Temperature</button>
+                <button type="button" data-view="rain" data-i18n="tab_rain">🌧️ Rainfall</button>
+                <button type="button" data-view="anomaly" data-i18n="tab_anomaly">⚠️ Anomalies</button>
+                <button type="button" data-view="compare" data-i18n="tab_compare">⚖️ Compare periods</button>
+            </div>
+            <div class="stat-grid" id="climateStats"></div>
+            <div class="chart-card"><div class="chart-wrap tall"><canvas id="climateIntelChart"></canvas></div><div class="chart-status" id="climateStatus"></div></div>
+            <div class="anomaly-list" id="anomalyList" hidden></div>
+        </div>
+    </section>
+
+    <!-- INTERACTIVE MAP -->
+    <section class="fx-section" id="mapSection" data-page="tools">
+        <div class="fx-head">
+            <div><span class="small-label" data-i18n="map_label">INTERACTIVE WEATHER MAP</span><h2 data-i18n="map_title">Rain, wind, temperature, clouds and radar</h2></div>
+        </div>
+        <div class="tab-row" id="mapLayers">
+            <button type="button" class="on" data-layer="rain" data-i18n="layer_rain">🌧️ Rain</button>
+            <button type="button" data-layer="wind" data-i18n="layer_wind">💨 Wind</button>
+            <button type="button" data-layer="temp" data-i18n="layer_temp">🌡️ Temperature</button>
+            <button type="button" data-layer="clouds" data-i18n="layer_clouds">☁️ Clouds</button>
+            <button type="button" data-layer="radar" data-i18n="layer_radar">📡 Radar</button>
+        </div>
+        <div class="map-frame">
+            <div id="weatherMap" role="application" aria-label="Weather map"></div>
+            <div class="map-legend" id="mapLegend"></div>
+            <div class="radar-bar" id="radarBar" hidden>
+                <button type="button" id="radarPlay" aria-label="Play or pause radar">⏸</button>
+                <input type="range" id="radarSlider" min="0" max="0" value="0" aria-label="Radar frame">
+                <span id="radarTime">--:--</span>
+            </div>
+        </div>
+        <p class="map-hint" data-i18n="map_hint">Tip: click anywhere on the map to check the weather at that spot.</p>
+    </section>
+
+    <!-- QUICK WEATHER TOOLKIT -->
+    <section class="fx-section" id="toolkitSection" data-page="tools">
+        <div class="fx-head">
+            <div><span class="small-label">QUICK WEATHER TOOLS</span><h2>Converters and calculators</h2></div>
+        </div>
+        <div class="tool-grid">
+            <div class="tool-card">
+                <h3>🔄 Unit converter</h3>
+                <div class="tool-row"><select id="convType" aria-label="Measurement"><option value="temp">Temperature</option><option value="wind">Wind speed</option><option value="rain">Rainfall</option><option value="pressure">Pressure</option><option value="distance">Distance</option></select></div>
+                <div class="tool-row"><input type="number" id="convValue" value="30" step="any" aria-label="Value"><select id="convFrom" aria-label="From"></select><select id="convTo" aria-label="To"></select></div>
+                <div class="tool-result" id="convResult">--</div>
+            </div>
+            <div class="tool-card">
+                <h3>🥵 Heat index and dew point</h3>
+                <div class="tool-row"><input type="number" id="hiTemp" value="32" step="any" aria-label="Temperature in °C" placeholder="°C"><input type="number" id="hiHum" value="65" min="0" max="100" step="any" aria-label="Humidity %" placeholder="% humidity"></div>
+                <div class="tool-row"><button type="button" class="fx-btn" id="hiUseLive">Use current weather</button></div>
+                <div class="tool-result" id="hiResult">--</div>
+            </div>
+            <div class="tool-card">
+                <h3>💨 Wind scale (Beaufort)</h3>
+                <div class="tool-row"><input type="number" id="bfSpeed" value="6" min="0" step="any" aria-label="Wind speed in m/s" placeholder="m/s"><button type="button" class="fx-btn" id="bfUseLive">Use current wind</button></div>
+                <div class="tool-result" id="bfResult">--</div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+
+<!-- =========================================================
+     FOOTER
+========================================================= -->
+
+<footer class="site-footer">
+    <div class="footer-container">
+        <p class="footer-copyright">
+            @ALL RIGHTS RESERVED — &ldquo;Crafting the Future of Climate Intelligence&rdquo; — TEAM CODEX PRIVATE LIMITED
+        </p>
+    </div>
+</footer>
+
+
+<!-- =========================================================
+     JAVASCRIPT
+========================================================= -->
+
+
+<!-- =========================================================
+     BOTTOM NAVIGATION
+========================================================= -->
+<nav class="bottom-tabs" id="bottomTabs" aria-label="Main sections">
+    <button type="button" data-go-tab="home" class="on" aria-current="page"><span class="bt-ico">🏠</span><span>Home</span></button>
+    <button type="button" data-go-tab="graphs"><span class="bt-ico">📈</span><span>Graphs</span></button>
+    <button type="button" data-go-tab="tools"><span class="bt-ico">🧰</span><span>Tools</span></button>
+    <button type="button" data-go-tab="advisory"><span class="bt-ico">🤖</span><span>AI Advisory</span></button>
+</nav>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+<script src="{{ url_for('static', filename='enhance.js') }}"></script>
+<script src="{{ url_for('static', filename='features.js') }}"></script>
+<script src="{{ url_for('static', filename='tabs.js') }}"></script>
+<script src="{{ url_for('static', filename='tools.js') }}"></script>
+
+</body>
+
+</html>
