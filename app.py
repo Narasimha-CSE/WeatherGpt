@@ -84,7 +84,9 @@ def sitemap():
     <loc>https://weathergpt-o42w.onrender.com/</loc>
   </url>
 </urlset>'''
-    return Response(xml, mimetype="application/xml")
+    response = Response(xml, mimetype="application/xml")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
 
 
 # Public robots.txt for search engines
@@ -94,7 +96,9 @@ def robots_txt():
 Allow: /
 Sitemap: https://weathergpt-o42w.onrender.com/sitemap.xml
 """
-    return Response(content, mimetype="text/plain")
+    response = Response(content, mimetype="text/plain")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
 
 
 # Google Search Console verification
