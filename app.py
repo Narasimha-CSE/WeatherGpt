@@ -14,6 +14,7 @@ import requests
 from dotenv import load_dotenv
 from flask import (
     Flask,
+    Response,
     jsonify,
     redirect,
     request,
@@ -72,6 +73,18 @@ if GROQ_API_KEY:
 @app.route("/")
 def home():
     return render_template("index.html", user=current_user())
+
+
+# XML sitemap for search engines
+@app.route("/sitemap.xml", methods=["GET"])
+def sitemap():
+    xml = '''<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://weathergpt-o42w.onrender.com/</loc>
+  </url>
+</urlset>'''
+    return Response(xml, mimetype="application/xml")
 
 
 # Google Search Console verification
