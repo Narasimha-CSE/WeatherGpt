@@ -133,23 +133,33 @@ def init_auth(app):
     init_db()
     app.register_blueprint(bp)
 
+    
     @app.before_request
     def require_login():
         endpoint = request.endpoint or ""
 
+        # Allow Google Search Console verification without login.
+        if request.path == "/google825a0e9664b14fbc.html":
+            return None
+
+        # Allow static files and authentication routes.
         if endpoint == "static" or endpoint.startswith("auth."):
             return None
 
+        # Allow users who are already logged in.
         if current_user():
             return None
 
+        # Redirect unauthenticated visitors from the home page to login.
         if request.path == "/":
             return redirect(url_for("auth.login_page"))
 
+        # Keep all other protected routes secure.
         return jsonify({
             "error": "Please log in to continue.",
             "login_required": True,
         }), 401
+
 
     @app.after_request
     def no_cache_for_private(resp):
@@ -1042,4 +1052,4 @@ def me():
 
 def app_logger_error(message):
     # Do not log OTP values, API keys, or message contents.
-    print("[WeatherGPT auth] " + message)
+    print("[WeatherGPT auth] " + message) 
