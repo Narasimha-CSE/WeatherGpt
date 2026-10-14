@@ -1107,6 +1107,14 @@ def forecast():
 # AUTHENTICATION + FEATURE APIS
 # =========================================================
 
+# Public search-engine files must bypass any global login check registered
+# by init_auth(). Register this hook BEFORE init_auth(app), so it runs first.
+@app.before_request
+def allow_public_sitemap():
+    if request.path == "/sitemap.xml":
+        return sitemap()
+
+
 # Authentication routes such as /login, /register,
 # /auth/register, /auth/login, /auth/verify and /auth/resend
 # are defined in auth.py.
