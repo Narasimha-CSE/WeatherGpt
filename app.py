@@ -6,16 +6,25 @@ Weather intelligence, Groq AI, weather analytics,
 and Brevo email OTP authentication.
 """
 
+
 import os
 from datetime import datetime, timezone
 
 import requests
 from dotenv import load_dotenv
-from flask import Flask, jsonify, redirect, request, render_template
+from flask import (
+    Flask,
+    jsonify,
+    redirect,
+    request,
+    render_template,
+    send_from_directory,
+)
 from groq import Groq
 
 from auth import init_auth, current_user
 from features import init_features, forecast_context
+
 
 
 # =========================================================
@@ -63,6 +72,15 @@ if GROQ_API_KEY:
 @app.route("/")
 def home():
     return render_template("index.html", user=current_user())
+
+
+# Google Search Console verification
+@app.route("/google825a0e9664b14fbc.html", methods=["GET"])
+def google_verification():
+    return send_from_directory(
+        BASE_DIR,
+        "google825a0e9664b14fbc.html",
+    )
 
 
 # =========================================================
