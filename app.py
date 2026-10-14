@@ -87,6 +87,16 @@ def sitemap():
     return Response(xml, mimetype="application/xml")
 
 
+# Public robots.txt for search engines
+@app.route("/robots.txt", methods=["GET"])
+def robots_txt():
+    content = """User-agent: *
+Allow: /
+Sitemap: https://weathergpt-o42w.onrender.com/sitemap.xml
+"""
+    return Response(content, mimetype="text/plain")
+
+
 # Google Search Console verification
 @app.route("/google825a0e9664b14fbc.html", methods=["GET"])
 def google_verification():
@@ -1110,9 +1120,11 @@ def forecast():
 # Public search-engine files must bypass any global login check registered
 # by init_auth(). Register this hook BEFORE init_auth(app), so it runs first.
 @app.before_request
-def allow_public_sitemap():
+def allow_public_search_files():
     if request.path == "/sitemap.xml":
         return sitemap()
+    if request.path == "/robots.txt":
+        return robots_txt()
 
 
 # Authentication routes such as /login, /register,
