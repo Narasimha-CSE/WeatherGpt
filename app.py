@@ -84,20 +84,26 @@ def sitemap():
     <loc>https://weathergpt-o42w.onrender.com/</loc>
   </url>
 </urlset>'''
-    response = Response(xml, mimetype="application/xml")
+    response = Response(xml, status=200, mimetype="application/xml")
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
 
 # Public robots.txt for search engines
 @app.route("/robots.txt", methods=["GET"])
 def robots_txt():
-    content = """User-agent: *
+    content = """User-agent: Googlebot
 Allow: /
+
+User-agent: *
+Allow: /
+
 Sitemap: https://weathergpt-o42w.onrender.com/sitemap.xml
 """
-    response = Response(content, mimetype="text/plain")
+    response = Response(content, status=200, mimetype="text/plain")
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
 
