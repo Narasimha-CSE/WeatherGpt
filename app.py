@@ -105,7 +105,7 @@ def sitemap():
 @app.route("/robots.txt", methods=["GET"])
 def robots_txt():
     content = """User-agent: Googlebot
-Disallow: 
+Allow: 
 
 User-agent: *
 Allow: /
