@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 """
 WeatherGPT
@@ -67,6 +66,18 @@ if GROQ_API_KEY:
 
 
 # =========================================================
+# PUBLIC SEARCH-ENGINE FILES (BYPASS AUTH HOOKS)
+# =========================================================
+
+@app.before_request
+def allow_public_search_files():
+    if request.path == "/sitemap.xml":
+        return sitemap()
+    if request.path == "/robots.txt":
+        return robots_txt()
+
+
+# =========================================================
 # HOME
 # =========================================================
 
@@ -94,7 +105,7 @@ def sitemap():
 @app.route("/robots.txt", methods=["GET"])
 def robots_txt():
     content = """User-agent: Googlebot
-Allow: /
+Disallow: 
 
 User-agent: *
 Allow: /
@@ -1126,16 +1137,6 @@ def forecast():
 # =========================================================
 # AUTHENTICATION + FEATURE APIS
 # =========================================================
-
-# Public search-engine files must bypass any global login check registered
-# by init_auth(). Register this hook BEFORE init_auth(app), so it runs first.
-@app.before_request
-def allow_public_search_files():
-    if request.path == "/sitemap.xml":
-        return sitemap()
-    if request.path == "/robots.txt":
-        return robots_txt()
-
 
 # Authentication routes such as /login, /register,
 # /auth/register, /auth/login, /auth/verify and /auth/resend
