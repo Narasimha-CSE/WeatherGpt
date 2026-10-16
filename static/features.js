@@ -17,13 +17,14 @@
     /* ------------------------------------------------------------------
        Session handling: any API call answered with 401 sends you to /login
     ------------------------------------------------------------------ */
-   /* Session handling: do not redirect the entire page on API 401 */
-const nativeFetch = window.fetch.bind(window);
-
-window.fetch = async function (...args) {
-    return await nativeFetch(...args);
-};
-
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = async function () {
+        const res = await nativeFetch.apply(null, arguments);
+        if (res.status === 401) {
+            try { const j = await res.clone().json(); if (j && j.login_required) window.location.href = "/login"; } catch (_) { /* ignore */ }
+        }
+        return res;
+    };
     /* ------------------------------------------------------------------
        Translations (UI labels)
     ------------------------------------------------------------------ */
