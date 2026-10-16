@@ -124,6 +124,16 @@ def google_verification():
         "google825a0e9664b14fbc.html",
     )
 
+@app.before_request
+def allow_public_search_files():
+    if request.path == "/robots.txt":
+        return robots_txt()
+
+    if request.path == "/sitemap.xml":
+        return sitemap()
+
+    if request.path == "/google825a0e9664b14fbc.html":
+        return google_verification()
 
 
 # =========================================================
