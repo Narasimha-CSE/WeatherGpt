@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 """
 WeatherGPT
@@ -94,7 +95,13 @@ if GROQ_API_KEY:
 
 @app.route("/")
 def home():
-    return render_template("index.html", user=current_user())
+    user = current_user()
+
+    if not user:
+        return redirect(url_for("auth.login_page"))
+
+    return render_template("index.html", user=user)
+
 
 
 # =========================================================
