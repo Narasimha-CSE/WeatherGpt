@@ -116,6 +116,7 @@ def init_db():
         """)
 
 
+
 def init_auth(app):
     app.secret_key = load_secret_key()
 
@@ -133,33 +134,36 @@ def init_auth(app):
     init_db()
     app.register_blueprint(bp)
 
-    
+    # Allow public pages and protect private endpoints.
     @app.before_request
     def require_login():
         endpoint = request.endpoint or ""
+        path = request.path
 
-        # Allow Google Search Console verification without login.
-        if request.path == "/google825a0e9664b14fbc.html":
+        public_paths = {
+            "/",
+            "/robots.txt",
+            "/sitemap.xml",
+            "/google825a0e9664b14fbc.html",
+        }
+
+        # Allow public pages and search-engine files.
+        if path in public_paths:
             return None
 
         # Allow static files and authentication routes.
         if endpoint == "static" or endpoint.startswith("auth."):
             return None
 
-        # Allow users who are already logged in.
+        # Allow authenticated users.
         if current_user():
             return None
 
-        # Redirect unauthenticated visitors from the home page to login.
-        if request.path == "/":
-            return redirect(url_for("auth.login_page"))
-
-        # Keep all other protected routes secure.
+        # Protect all other endpoints.
         return jsonify({
             "error": "Please log in to continue.",
             "login_required": True,
         }), 401
-
 
     @app.after_request
     def no_cache_for_private(resp):
@@ -169,6 +173,7 @@ def init_auth(app):
             and request.method == "GET"
         ):
             resp.headers.setdefault("Cache-Control", "no-cache")
+
         return resp
 
 
