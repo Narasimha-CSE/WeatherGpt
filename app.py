@@ -69,45 +69,46 @@ if GROQ_API_KEY:
 # PUBLIC SEARCH-ENGINE FILES (BYPASS AUTH HOOKS)
 # =========================================================
 
+# =========================================================
+# PUBLIC SEARCH-ENGINE FILES
+# =========================================================
+
 @app.before_request
 def allow_public_search_files():
-    if request.path == "/sitemap.xml":
-        return sitemap()
+    # These resources must remain accessible without login.
     if request.path == "/robots.txt":
         return robots_txt()
 
+    if request.path == "/sitemap.xml":
+        return sitemap()
+
 
 # =========================================================
-# HOME
+# XML SITEMAP
 # =========================================================
 
-@app.route("/")
-def home():
-    return render_template("index.html", user=current_user())
-
-
-# XML sitemap for search engines
 @app.route("/sitemap.xml", methods=["GET"])
 def sitemap():
-    xml = '''<?xml version="1.0" encoding="UTF-8"?>
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://weathergpt-o42w.onrender.com/</loc>
   </url>
-</urlset>'''
+</urlset>
+"""
     response = Response(xml, status=200, mimetype="application/xml")
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
 
-# Public robots.txt for search engines
+# =========================================================
+# PUBLIC ROBOTS.TXT — ALLOW SEARCH-ENGINE CRAWLING
+# =========================================================
+
 @app.route("/robots.txt", methods=["GET"])
 def robots_txt():
-    content = """User-agent: Googlebot
-Allow: 
-
-User-agent: *
+    content = """User-agent: *
 Allow: /
 
 Sitemap: https://weathergpt-o42w.onrender.com/sitemap.xml
@@ -118,13 +119,17 @@ Sitemap: https://weathergpt-o42w.onrender.com/sitemap.xml
     return response
 
 
-# Google Search Console verification
+# =========================================================
+# GOOGLE SEARCH CONSOLE VERIFICATION
+# =========================================================
+
 @app.route("/google825a0e9664b14fbc.html", methods=["GET"])
 def google_verification():
     return send_from_directory(
         BASE_DIR,
         "google825a0e9664b14fbc.html",
     )
+
 
 
 # =========================================================
