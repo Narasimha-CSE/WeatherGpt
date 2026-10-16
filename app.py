@@ -66,13 +66,6 @@ if GROQ_API_KEY:
 
 
 # =========================================================
-# PUBLIC SEARCH-ENGINE FILES (BYPASS AUTH HOOKS)
-# =========================================================
-
-# =========================================================
-# PUBLIC SEARCH-ENGINE FILES
-# =========================================================
-# =========================================================
 # PUBLIC SEARCH-ENGINE FILES
 # =========================================================
 
@@ -88,7 +81,7 @@ def robots_txt():
     response = Response(
         content,
         status=200,
-        mimetype="text/plain"
+        mimetype="text/plain",
     )
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -107,9 +100,10 @@ def sitemap():
     response = Response(
         xml,
         status=200,
-        mimetype="application/xml"
+        mimetype="application/xml",
     )
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
 
@@ -124,6 +118,7 @@ def google_verification():
         "google825a0e9664b14fbc.html",
     )
 
+
 @app.before_request
 def allow_public_search_files():
     if request.path == "/robots.txt":
@@ -134,6 +129,7 @@ def allow_public_search_files():
 
     if request.path == "/google825a0e9664b14fbc.html":
         return google_verification()
+
 
 
 # =========================================================
