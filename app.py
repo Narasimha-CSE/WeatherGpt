@@ -108,7 +108,7 @@ def robots_txt():
 Allow: 
 
 User-agent: *
-Disallow: /
+Allow: /
 
 Sitemap: https://weathergpt-o42w.onrender.com/sitemap.xml
 """
