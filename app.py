@@ -72,20 +72,28 @@ if GROQ_API_KEY:
 # =========================================================
 # PUBLIC SEARCH-ENGINE FILES
 # =========================================================
-
-@app.before_request
-def allow_public_search_files():
-    # These resources must remain accessible without login.
-    if request.path == "/robots.txt":
-        return robots_txt()
-
-    if request.path == "/sitemap.xml":
-        return sitemap()
-
-
 # =========================================================
-# XML SITEMAP
+# PUBLIC SEARCH-ENGINE FILES
 # =========================================================
+
+@app.route("/robots.txt", methods=["GET"])
+def robots_txt():
+    content = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "\n"
+        "Sitemap: https://weathergpt-o42w.onrender.com/sitemap.xml\n"
+    )
+
+    response = Response(
+        content,
+        status=200,
+        mimetype="text/plain"
+    )
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
 
 @app.route("/sitemap.xml", methods=["GET"])
 def sitemap():
@@ -94,28 +102,14 @@ def sitemap():
   <url>
     <loc>https://weathergpt-o42w.onrender.com/</loc>
   </url>
-</urlset>
-"""
-    response = Response(xml, status=200, mimetype="application/xml")
+</urlset>"""
+
+    response = Response(
+        xml,
+        status=200,
+        mimetype="application/xml"
+    )
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    return response
-
-
-# =========================================================
-# PUBLIC ROBOTS.TXT — ALLOW SEARCH-ENGINE CRAWLING
-# =========================================================
-
-@app.route("/robots.txt", methods=["GET"])
-def robots_txt():
-    content = """User-agent: *
-Allow: /
-
-Sitemap: https://weathergpt-o42w.onrender.com/sitemap.xml
-"""
-    response = Response(content, status=200, mimetype="text/plain")
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
 
