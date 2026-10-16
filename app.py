@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 """
 WeatherGPT
@@ -66,70 +67,53 @@ if GROQ_API_KEY:
 
 
 # =========================================================
-# PUBLIC SEARCH-ENGINE FILES
+# HOME
 # =========================================================
 
-@app.route("/robots.txt", methods=["GET"])
-def robots_txt():
-    content = (
-        "User-agent: *\n"
-        "Allow: /\n"
-        "\n"
-        "Sitemap: https://weathergpt-o42w.onrender.com/sitemap.xml\n"
-    )
-
-    response = Response(
-        content,
-        status=200,
-        mimetype="text/plain",
-    )
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    return response
+@app.route("/")
+def home():
+    return render_template("index.html", user=current_user())
 
 
+# XML sitemap for search engines
 @app.route("/sitemap.xml", methods=["GET"])
 def sitemap():
-    xml = """<?xml version="1.0" encoding="UTF-8"?>
+    xml = '''<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://weathergpt-o42w.onrender.com/</loc>
   </url>
-</urlset>"""
-
-    response = Response(
-        xml,
-        status=200,
-        mimetype="application/xml",
-    )
+</urlset>'''
+    response = Response(xml, status=200, mimetype="application/xml")
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
 
-# =========================================================
-# GOOGLE SEARCH CONSOLE VERIFICATION
-# =========================================================
+# Public robots.txt for search engines
+@app.route("/robots.txt", methods=["GET"])
+def robots_txt():
+    content = """User-agent: Googlebot
+Allow: 
 
+User-agent: *
+Allow: /
+
+Sitemap: https://weathergpt-o42w.onrender.com/sitemap.xml
+"""
+    response = Response(content, status=200, mimetype="text/plain")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+# Google Search Console verification
 @app.route("/google825a0e9664b14fbc.html", methods=["GET"])
 def google_verification():
     return send_from_directory(
         BASE_DIR,
         "google825a0e9664b14fbc.html",
     )
-
-
-@app.before_request
-def allow_public_search_files():
-    if request.path == "/robots.txt":
-        return robots_txt()
-
-    if request.path == "/sitemap.xml":
-        return sitemap()
-
-    if request.path == "/google825a0e9664b14fbc.html":
-        return google_verification()
-
 
 
 # =========================================================
@@ -1142,6 +1126,16 @@ def forecast():
 # =========================================================
 # AUTHENTICATION + FEATURE APIS
 # =========================================================
+
+# Public search-engine files must bypass any global login check registered
+# by init_auth(). Register this hook BEFORE init_auth(app), so it runs first.
+@app.before_request
+def allow_public_search_files():
+    if request.path == "/sitemap.xml":
+        return sitemap()
+    if request.path == "/robots.txt":
+        return robots_txt()
+
 
 # Authentication routes such as /login, /register,
 # /auth/register, /auth/login, /auth/verify and /auth/resend
