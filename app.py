@@ -1,13 +1,13 @@
-
 # -*- coding: utf-8 -*-
 """
 WeatherGPT
 Weather intelligence, Groq AI, weather analytics,
-and Brevo email OTP authentication.
+Brevo email OTP authentication and Google Search Console support.
 """
 
 
 import os
+import re
 from datetime import datetime, timezone
 
 import requests
@@ -16,7 +16,6 @@ from flask import (
     Flask,
     Response,
     jsonify,
-    redirect,
     request,
     render_template,
     send_from_directory,
@@ -47,12 +46,35 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 BREVO_API_KEY = os.getenv("BREVO_API_KEY", "").strip()
 BREVO_SENDER_EMAIL = os.getenv("BREVO_SENDER_EMAIL", "").strip()
 
+# ---- Google Search Console / SEO -------------------------------------------
+# Public address of the deployed site (no trailing slash). Override it in .env
+# with SITE_URL=https://your-domain.com when you move to a custom domain.
+SITE_URL = os.getenv(
+    "SITE_URL",
+    "https://weathergpt-o42w.onrender.com",
+).strip().rstrip("/")
+
+# File name given by Search Console ("HTML file" verification method).
+GOOGLE_VERIFICATION_FILE = os.getenv(
+    "GOOGLE_VERIFICATION_FILE",
+    "google825a0e9664b14fbc.html",
+).strip()
+
+# Pages that anyone (including Googlebot) can open without logging in and that
+# answer with HTTP 200. "/" is NOT listed because it redirects logged-out
+# visitors to /login, and Search Console reports redirecting URLs in a
+# sitemap as a problem.
+PUBLIC_SEO_PAGES = ["/login", "/register"]
+
+GOOGLE_VERIFY_PATH_RE = re.compile(r"^/google[0-9a-f]{16}\.html$")
+
 print("=" * 60)
 print("WeatherGPT Starting...")
 print("Weather API Key Loaded:", bool(WEATHER_API_KEY))
 print("Groq API Key Loaded:", bool(GROQ_API_KEY))
 print("Brevo API Key Loaded:", bool(BREVO_API_KEY))
 print("Brevo Sender Email Configured:", bool(BREVO_SENDER_EMAIL))
+print("Site URL:", SITE_URL)
 print("=" * 60)
 
 
@@ -75,45 +97,95 @@ def home():
     return render_template("index.html", user=current_user())
 
 
-# XML sitemap for search engines
+# =========================================================
+# GOOGLE SEARCH CONSOLE FILES (PUBLIC - NO LOGIN NEEDED)
+# =========================================================
+
+def _seo_response(body, mimetype):
+    response = Response(body, status=200, mimetype=mimetype)
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
 @app.route("/sitemap.xml", methods=["GET"])
 def sitemap():
-    xml = '''<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://weathergpt-o42w.onrender.com/</loc>
-  </url>
-</urlset>'''
-    response = Response(xml, status=200, mimetype="application/xml")
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    return response
+    entries = "".join(
+        "  <url>\n    <loc>%s%s</loc>\n  </url>\n" % (SITE_URL, page)
+        for page in PUBLIC_SEO_PAGES
+    )
+
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + entries
+        + "</urlset>\n"
+    )
+
+    return _seo_response(xml, "application/xml")
 
 
-# Public robots.txt for search engines
 @app.route("/robots.txt", methods=["GET"])
 def robots_txt():
-    content = """User-agent: Googlebot
-Allow: 
-
-User-agent: *
-Allow: /
-
-Sitemap: https://weathergpt-o42w.onrender.com/sitemap.xml
-"""
-    response = Response(content, status=200, mimetype="text/plain")
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    return response
-
-
-# Google Search Console verification
-@app.route("/google825a0e9664b14fbc.html", methods=["GET"])
-def google_verification():
-    return send_from_directory(
-        BASE_DIR,
-        "google825a0e9664b14fbc.html",
+    content = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /auth/\n"
+        "Disallow: /logout\n"
+        "Disallow: /ask\n"
+        "Disallow: /insights\n"
+        "Disallow: /weather\n"
+        "Disallow: /forecast\n"
+        "Disallow: /historical\n"
+        "Disallow: /location-search\n"
+        "\n"
+        "Sitemap: %s/sitemap.xml\n" % SITE_URL
     )
+
+    return _seo_response(content, "text/plain")
+
+
+def google_verification(filename):
+    """Serve the Search Console verification file.
+
+    * If the file exists next to app.py it is sent as it is.
+    * Otherwise, for YOUR configured file name only, the standard content
+      ("google-site-verification: <file name>") is generated, so verification
+      works even if the file was not uploaded.
+    * Any other google*.html name that is not a real file returns 404, so
+      nobody else can verify ownership of your site.
+    """
+    if os.path.isfile(os.path.join(BASE_DIR, filename)):
+        response = send_from_directory(BASE_DIR, filename)
+        response.headers["Cache-Control"] = "public, max-age=3600"
+        return response
+
+    if filename == GOOGLE_VERIFICATION_FILE:
+        return _seo_response(
+            "google-site-verification: %s" % filename,
+            "text/html",
+        )
+
+    return jsonify({"error": "Not found."}), 404
+
+
+# These public files must be answered BEFORE the login check that
+# init_auth() registers (before_request hooks run in registration order),
+# otherwise Googlebot would receive "401 Please log in".
+@app.before_request
+def allow_public_search_files():
+    path = request.path
+
+    if path == "/sitemap.xml":
+        return sitemap()
+
+    if path == "/robots.txt":
+        return robots_txt()
+
+    if GOOGLE_VERIFY_PATH_RE.match(path):
+        return google_verification(path.lstrip("/"))
+
+    return None
 
 
 # =========================================================
@@ -1127,19 +1199,10 @@ def forecast():
 # AUTHENTICATION + FEATURE APIS
 # =========================================================
 
-# Public search-engine files must bypass any global login check registered
-# by init_auth(). Register this hook BEFORE init_auth(app), so it runs first.
-@app.before_request
-def allow_public_search_files():
-    if request.path == "/sitemap.xml":
-        return sitemap()
-    if request.path == "/robots.txt":
-        return robots_txt()
-
-
-# Authentication routes such as /login, /register,
-# /auth/register, /auth/login, /auth/verify and /auth/resend
-# are defined in auth.py.
+# NOTE: the search-engine hook (allow_public_search_files) is defined above and
+# therefore registered BEFORE init_auth(app), so it runs before the login check.
+# Authentication routes such as /login, /register, /auth/register,
+# /auth/login, /auth/verify and /auth/resend are defined in auth.py.
 init_auth(app)
 
 # Keep the existing WeatherGPT feature APIs.
