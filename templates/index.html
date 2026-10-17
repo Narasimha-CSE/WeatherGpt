@@ -1,15 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 
-
 <head>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-
-    <!-- Google Search Console verification -->
-    <!-- Replace this placeholder with the actual HTML tag from Google Search Console -->
 
     <title>WeatherGPT - AI Weather Intelligence</title>
 
@@ -17,6 +11,7 @@
           href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='features.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='tabs.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='reliability.css') }}">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1065,6 +1060,7 @@
     <nav class="feature-nav" id="featureNav" aria-label="Sections">
         <a href="#analyticsSection">📈 Analytics</a>
         <a href="#forecastSection" data-i18n="nav_forecast">📅 Forecast</a>
+        <a href="#relSection" id="relNavLink">🎯 Reliability</a>
         <a href="#alertsSection" data-i18n="nav_alerts">🚨 Alerts</a>
         <a href="#recsSection" data-i18n="nav_recs">👕 Advice</a>
         <a href="#travelSection" data-i18n="nav_travel">✈️ Travel</a>
@@ -1097,6 +1093,33 @@
             <div class="hourly" id="hourlyStrip"></div>
             <div class="chart-card"><div class="chart-wrap"><canvas id="forecastChart"></canvas></div></div>
             <div class="daily" id="dailyGrid"></div>
+        </div>
+    </section>
+
+    <!-- FORECAST RELIABILITY (10-day confidence, model disagreement, bust risk, track record) -->
+    <section class="fx-section" id="relSection" data-page="graphs">
+        <div class="fx-head">
+            <div><span class="small-label" data-ri="label">FORECAST RELIABILITY</span><h2 data-ri="title">How much can you trust the next 10 days?</h2></div>
+            <div class="fx-badge" id="relModels" hidden></div>
+        </div>
+        <div class="fx-empty" data-ri="empty">Search for a city to see this section.</div>
+        <div class="fx-body" hidden>
+            <div class="rel-top">
+                <div class="rel-ring" id="relRing" style="--p:0"><b id="relAvg">0</b><small>%</small></div>
+                <div class="rel-top-txt"><h3 data-ri="avg_title">Average 10-day confidence</h3><p id="relSummary"></p></div>
+            </div>
+            <div class="rel-days" id="relDays"></div>
+            <div class="tab-row rel-tabs" id="relTabs">
+                <button type="button" class="on" data-v="tmax" data-ri="t_temp">🌡️ Temperature</button>
+                <button type="button" data-v="rain" data-ri="t_rain">🌧️ Rain</button>
+                <button type="button" data-v="gust" data-ri="t_wind">💨 Wind gusts</button>
+            </div>
+            <div class="chart-card"><div class="chart-wrap"><canvas id="relChart"></canvas></div><p class="rel-note" data-ri="chart_note">Each line is one forecast model. The wider the lines spread apart, the less reliable that day is.</p></div>
+            <div class="rel-detail" id="relDetail"></div>
+            <div class="rel-grid2">
+                <div class="rel-card" id="relVerify"><h3 data-ri="v_title">📋 Track record at this location</h3><div id="relVerifyBody" class="rel-muted">…</div></div>
+                <div class="rel-card" id="relCard"><h3 data-ri="m_title">🧠 Bust-risk model</h3><div id="relCardBody" class="rel-muted">…</div></div>
+            </div>
         </div>
     </section>
 
@@ -1187,6 +1210,7 @@
             <button type="button" data-layer="temp" data-i18n="layer_temp">🌡️ Temperature</button>
             <button type="button" data-layer="clouds" data-i18n="layer_clouds">☁️ Clouds</button>
             <button type="button" data-layer="radar" data-i18n="layer_radar">📡 Radar</button>
+            <button type="button" data-layer="reliability" data-i18n="layer_rel">🎯 Reliability</button>
         </div>
         <div class="map-frame">
             <div id="weatherMap" role="application" aria-label="Weather map"></div>
@@ -1195,6 +1219,11 @@
                 <button type="button" id="radarPlay" aria-label="Play or pause radar">⏸</button>
                 <input type="range" id="radarSlider" min="0" max="0" value="0" aria-label="Radar frame">
                 <span id="radarTime">--:--</span>
+            </div>
+            <div class="radar-bar rel-mapbar" id="relMapBar" hidden>
+                <span id="relMapDayLabel">Day</span>
+                <input type="range" id="relMapDay" min="0" max="9" value="3" aria-label="Forecast day">
+                <span id="relMapDate">--</span>
             </div>
         </div>
         <p class="map-hint" data-i18n="map_hint">Tip: click anywhere on the map to check the weather at that spot.</p>
@@ -1262,6 +1291,7 @@
 <script src="{{ url_for('static', filename='features.js') }}"></script>
 <script src="{{ url_for('static', filename='tabs.js') }}"></script>
 <script src="{{ url_for('static', filename='tools.js') }}"></script>
+<script src="{{ url_for('static', filename='reliability.js') }}"></script>
 <script src="{{ url_for('static', filename='location.js') }}"></script>
 
 </body>
